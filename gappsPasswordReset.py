@@ -26,23 +26,27 @@ description = "Command line utility to force password resets for all Google Apps
 parser = optparse.OptionParser( usage=usage, version=version, description=description )
 parser.add_option( '--domain', '-d', action="store", help='Google Apps for Domains account domain' )
 parser.add_option( '--email', '-e', action="store", help='Administrator email address' )
-parser.add_option( '--password', '-p', action="store", help='Administrator password' )
-parser.add_option( '--all', '-a', action="store_true", default=True, help='Force a reset for all accounts' )
+parser.add_option( '--password', '-p', action="store", help='Administrator password - prompts if not specified' )
+parser.add_option( '--all', '-a', action="store_true", default=False, help='Force a reset for all accounts' )
 parser.add_option( '--user', '-u', action="store", help='Force a reset for just one user account' )
         
 ( options, args ) = parser.parse_args( )   
 
 if not options.domain:
-  print 'You must specify the Google Apps for Domains domain.'
+  print '\nError: You must specify the Google Apps for Domains domain.\n'
+  parser.print_help()
   sys.exit( 1 )
 
 if not options.email:
-  print 'You must specify an administrator email address.'
+  print '\nError: You must specify an administrator email address.\n'
+  parser.print_help()
   sys.exit( 1 )
 
-if options.user:
-  options.all = False
-  
+if not options.user and options.all is False:
+  print '\nError: You must specify a user or all users.\n'
+  parser.print_help()
+  sys.exit( 1 )
+
 if not options.password:
   options.password = getpass.getpass( 'Password: ' )
 
@@ -50,6 +54,7 @@ service = gdata.apps.service.AppsService( email = options.email, domain = option
 service.ProgrammaticLogin( )
 
 if options.all is False and options.user:
+  print 'Fetching information for %s' % options.user
   try:
     user = service.RetrieveUser( options.user )
   except gdata.apps.service.AppsForYourDomainException, e:
@@ -58,6 +63,8 @@ if options.all is False and options.user:
   forcePasswordChange( user )
 
 if options.all is True:
+  print 'Fetching information for all users'
+  sys.exit(1)
   try:
     users = service.RetrieveAllUsers()
   except gdata.apps.service.AppsForYourDomainException, e:
